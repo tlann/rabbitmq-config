@@ -9,11 +9,16 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import java.io.IOException;
@@ -26,13 +31,16 @@ import java.util.Objects;
  * and there is a reply to address, the error message is returned to the requestor, and the
  * message is dropped. If there is no reply to address, the message is simply dropped.
  */
+
 public class ExampleMessageListenerContainer extends SimpleMessageListenerContainer {
     private final static String errorMessage = "No valid credentials found in request: {}";
     private final static Logger logger = LoggerFactory.getLogger(ExampleMessageListenerContainer.class);
 
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri")
+    String issuerUri;
 
-    @Autowired
-    @Qualifier("jwtDecoderByIssuerUri")
+//    @Autowired
+//    @Qualifier("jwtDecoderByIssuerUri")
     JwtDecoder jwtDecoder;
 
     @Autowired
@@ -41,11 +49,10 @@ public class ExampleMessageListenerContainer extends SimpleMessageListenerContai
     /**
      * Constructor
      *
-     * @param tokenServices The instance of DefaultTokenServices used to decrypt the access token.
      */
-//    public ExampleMessageListenerContainer(DefaultTokenServices tokenServices) {
-//        this.tokenServices = tokenServices;
-//    }
+    public ExampleMessageListenerContainer(JwtDecoder jwtDecoder) {
+        this.jwtDecoder=jwtDecoder;
+    }
 
     /**
      * This method checks to see if there is a valid authorization
@@ -73,19 +80,18 @@ public class ExampleMessageListenerContainer extends SimpleMessageListenerContai
                     .get();
 
             JwtAuthenticationToken auth = null;
-            String accessToken = null;
             try {
                 if(accessKey != null) {
-                    accessToken = messageIn.getMessageProperties().getHeaders().get(accessKey).toString();
+                    String accessToken = messageIn.getMessageProperties().getHeaders().get(accessKey).toString();
                     auth = new JwtAuthenticationToken(jwtDecoder.decode(accessToken));
                 }
             } catch (AuthenticationException | JwtException exc) {
                 logger.error("Could not load Authentication ", exc);
                 logger.debug(exc.getStackTrace().toString());
             }
+
             // If the token is expired, there will be no auth.
-            if (auth != null && auth.isAuthenticated()) {
-                ((HashMap) auth.getDetails()).put("accessToken", accessToken);
+            if (auth != null ) {
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 super.executeListener(channel, messageIn);
                 return;

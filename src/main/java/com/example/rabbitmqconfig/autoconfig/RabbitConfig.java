@@ -27,7 +27,7 @@ public class RabbitConfig implements RabbitListenerConfigurer, ApplicationContex
     @Bean
     @ConditionalOnMissingBean
     @Primary
-    public ExampleRabbitTemplate nomsRabbitTemplate(final ConnectionFactory connectionFactory) {
+    public ExampleRabbitTemplate exampleRabbitTemplate(final ConnectionFactory connectionFactory) {
         ExampleRabbitTemplate rabbitTemplate = new ExampleRabbitTemplate();
         rabbitTemplate.setConnectionFactory(connectionFactory);
         rabbitTemplate.setMessageConverter(producerJackson2MessageConverter());
