@@ -2,7 +2,7 @@ package com.example.rabbitmqconfig.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties("noms.rabbitmq")
+@ConfigurationProperties("omns.rabbitmq")
 public class RabbitProperties {
     private String[] queues;
 
